@@ -219,6 +219,7 @@ func cmdChallenge(sub string) error {
 		if _, err := os.Stat(challengePath()); err == nil {
 			fmt.Printf("edit your questions at %s\n", challengePath())
 			fmt.Println("then restart the server: claude-board restart")
+			challengeTip()
 			return nil
 		}
 		if err := os.MkdirAll(stateDir(), 0o755); err != nil {
@@ -229,9 +230,16 @@ func cmdChallenge(sub string) error {
 		}
 		fmt.Printf("wrote an example quiz to %s\n", challengePath())
 		fmt.Println("edit it, then restart the server: claude-board restart")
-		fmt.Println("note: a multiple-choice quiz is guessable — convenience, not real security.")
+		challengeTip()
 		return nil
 	}
+}
+
+func challengeTip() {
+	fmt.Println("note: a multiple-choice quiz is guessable — convenience, not real security.")
+	fmt.Println("tip:  the accepted answer need not be the *right* one. Mark a deliberately")
+	fmt.Println("      wrong option correct (e.g. 6 x 7 = 67) and guessers who pick the")
+	fmt.Println("      obvious answer fail — only you know the trick.")
 }
 
 func tern(b bool, a, c string) string {
