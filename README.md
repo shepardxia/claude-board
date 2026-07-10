@@ -38,6 +38,22 @@ Every tool call in every Claude Code session now shows up on the board. Tap a
 row to see its full output; in the detail pane, tap the input or the output to
 give it most of the height.
 
+## Access / security
+
+The server binds all interfaces so the iPad can reach it, so the board is gated:
+
+- **Token (default).** A secret in the URL (`?k=…`, stored `0600` in
+  `~/.claude-board/token`). The URL you bookmark carries it; anyone else who
+  hits the port gets `403`. `/push` is loopback-only — only the local hook can
+  post. Get the URL any time with `claude-board url`.
+- **Quiz (optional, convenience).** `claude-board challenge` scaffolds a
+  multiple-choice quiz; answering it sets a session cookie so you can bookmark
+  the plain URL and just tap through on the iPad. This is *guessable* — keep
+  casual snoopers out, not a determined attacker. Remove with `challenge off`.
+
+It's plaintext HTTP either way. On an untrusted network, don't run it (or tunnel
+it) — the token stops the easy "open the port and watch," not a traffic sniffer.
+
 ## Commands
 
 | Command | Does |
@@ -50,6 +66,7 @@ give it most of the height.
 | `claude-board run` | Run the server in the foreground |
 | `claude-board install-hook` / `uninstall-hook` | Just the `settings.json` hook |
 | `claude-board enable-boot` / `disable-boot` | Just the macOS login autostart |
+| `claude-board challenge` / `challenge off` | Scaffold / remove the optional tappable quiz gate |
 
 Port defaults to `8787`; override with `--port` or `$CLAUDE_BOARD_PORT`.
 `setup --no-boot` skips the login autostart.
