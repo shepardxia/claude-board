@@ -9,7 +9,37 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 )
+
+// When autostart is on, launchd owns the process (no pid file), so start/stop/
+// restart must go through launchctl instead of a pid.
+func launchdManaged() bool { return bootEnabled() }
+
+func launchdTarget() string {
+	return fmt.Sprintf("gui/%d/com.claude-board.server", os.Getuid())
+}
+
+func launchdKickstart(restart bool) error {
+	args := []string{"kickstart"}
+	if restart {
+		args = append(args, "-k") // kill the running instance, then start
+	}
+	args = append(args, launchdTarget())
+	out, err := exec.Command("launchctl", args...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("launchctl kickstart: %s", strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+func launchdKill() error {
+	out, err := exec.Command("launchctl", "kill", "SIGTERM", launchdTarget()).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("launchctl kill: %s", strings.TrimSpace(string(out)))
+	}
+	return nil
+}
 
 func plistXML(exe string, port int) string {
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>

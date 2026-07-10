@@ -58,6 +58,16 @@ func startServer(port int) error {
 		fmt.Printf("already running — %s\n", boardURL(port))
 		return nil
 	}
+	if launchdManaged() { // launchd owns it — start the managed job
+		if err := launchdKickstart(false); err != nil {
+			return err
+		}
+		if waitUp(port) {
+			fmt.Printf("started (autostart) — open %s on your iPad\n", boardURL(port))
+			return nil
+		}
+		return fmt.Errorf("failed to start; see %s", logFile())
+	}
 	if err := os.MkdirAll(stateDir(), 0o755); err != nil {
 		return err
 	}
@@ -94,6 +104,20 @@ func readPid() int {
 }
 
 func stopServer(port int) {
+	if launchdManaged() { // launchd owns it — signal via launchctl
+		if err := launchdKill(); err != nil {
+			fmt.Println(err)
+		}
+		for i := 0; i < 40 && isRunning(port); i++ {
+			time.Sleep(50 * time.Millisecond)
+		}
+		if isRunning(port) {
+			fmt.Println("still running (autostart may respawn on login)")
+		} else {
+			fmt.Println("stopped")
+		}
+		return
+	}
 	pid := readPid()
 	killed := false
 	if pid > 0 {
@@ -111,6 +135,20 @@ func stopServer(port int) {
 	} else {
 		fmt.Println("not running")
 	}
+}
+
+func restartServer(port int) error {
+	if launchdManaged() { // kill + start the managed job in one shot
+		if err := launchdKickstart(true); err != nil {
+			return err
+		}
+		waitUp(port)
+		fmt.Printf("restarted — %s\n", boardURL(port))
+		return nil
+	}
+	stopServer(port)
+	time.Sleep(300 * time.Millisecond)
+	return startServer(port)
 }
 
 // --- commands -----------------------------------------------------------------
@@ -279,9 +317,7 @@ func main() {
 	case "stop":
 		stopServer(port)
 	case "restart":
-		stopServer(port)
-		time.Sleep(300 * time.Millisecond)
-		err = startServer(port)
+		err = restartServer(port)
 	case "status":
 		cmdStatus(port)
 	case "run":
