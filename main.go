@@ -237,6 +237,7 @@ func cmdChallenge(sub string) error {
 
 func challengeTip() {
 	fmt.Println("note: a multiple-choice quiz is guessable — convenience, not real security.")
+	fmt.Println("the scaffolded answer is 67. yes, 67. change the question to whatever you want.")
 }
 
 func tern(b bool, a, c string) string {

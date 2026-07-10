@@ -155,8 +155,8 @@ func challengeConfigured() bool { return loadChallenge() != nil }
 // exampleChallenge is scaffolded by `claude-board challenge` for the user to edit.
 const exampleChallenge = `{
   "questions": [
-    { "q": "Edit these questions in ~/.claude-board/challenge.json. What is 6 x 7?",
-      "options": ["36", "42", "48", "13"], "answer": 1 }
+    { "q": "What is 6 x 7?",
+      "options": ["36", "67", "48", "13", "42"], "answer": 1 }
   ]
 }
 `
