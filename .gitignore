@@ -1,0 +1,7 @@
+# built binaries
+/claude-board
+/cb-test
+/dist/
+
+*.log
+.DS_Store
