@@ -29,7 +29,9 @@ func logFile() string          { return filepath.Join(stateDir(), "server.log") 
 func launchAgentsDir() string  { return filepath.Join(home(), "Library", "LaunchAgents") }
 func plistPath() string        { return filepath.Join(launchAgentsDir(), "com.claude-board.server.plist") }
 
-func boardURL(port int) string { return fmt.Sprintf("http://%s:%d", lanIP(), port) }
+func boardURL(port int) string {
+	return fmt.Sprintf("http://%s:%d/?k=%s", lanIP(), port, ensureToken())
+}
 
 // --- process ------------------------------------------------------------------
 func isRunning(port int) bool {
@@ -159,6 +161,39 @@ func cmdStatus(port int) {
 	}
 	fmt.Printf("hook:      %s\n", tern(hookInstalled(), "installed", "not installed"))
 	fmt.Printf("autostart: %s\n", tern(bootEnabled(), "enabled", "disabled"))
+	fmt.Printf("auth:      token%s\n", tern(challengeConfigured(), " + quiz", " only"))
+}
+
+// cmdChallenge scaffolds / removes the optional tappable quiz gate.
+func cmdChallenge(sub string) error {
+	switch sub {
+	case "off", "disable", "remove":
+		if _, err := os.Stat(challengePath()); err != nil {
+			fmt.Println("quiz gate not configured")
+			return nil
+		}
+		if err := os.Remove(challengePath()); err != nil {
+			return err
+		}
+		fmt.Println("quiz gate removed (token-only). Restart the server: claude-board restart")
+		return nil
+	default: // init / scaffold
+		if _, err := os.Stat(challengePath()); err == nil {
+			fmt.Printf("edit your questions at %s\n", challengePath())
+			fmt.Println("then restart the server: claude-board restart")
+			return nil
+		}
+		if err := os.MkdirAll(stateDir(), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(challengePath(), []byte(exampleChallenge), 0o644); err != nil {
+			return err
+		}
+		fmt.Printf("wrote an example quiz to %s\n", challengePath())
+		fmt.Println("edit it, then restart the server: claude-board restart")
+		fmt.Println("note: a multiple-choice quiz is guessable — convenience, not real security.")
+		return nil
+	}
 }
 
 func tern(b bool, a, c string) string {
@@ -186,6 +221,7 @@ commands:
   uninstall-hook   remove the hook from settings.json
   enable-boot      start on login (macOS LaunchAgent)
   disable-boot     stop starting on login
+  challenge        scaffold an optional tappable quiz gate (challenge off removes it)
 
 options:
   --port N         port (default 8787, or $CLAUDE_BOARD_PORT)
@@ -265,6 +301,12 @@ func main() {
 		err = enableBoot(port)
 	case "disable-boot":
 		err = disableBoot()
+	case "challenge":
+		sub := ""
+		if len(rest) > 1 {
+			sub = rest[1]
+		}
+		err = cmdChallenge(sub)
 	case "", "help":
 		fmt.Print(usage)
 	default:

@@ -327,10 +327,23 @@ func lanIP() string {
 
 func serve(port int) error {
 	h := newHub()
+	tok := ensureToken()
+	ch := loadChallenge() // optional tappable quiz gate; nil = token-only
 	mux := http.NewServeMux()
-	mux.HandleFunc("/events", h.events)
-	mux.HandleFunc("/push", h.push)
+
+	// read side (page + live stream + clear): token in URL OR a session cookie
+	mux.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		if !authed(r, tok) {
+			forbid(w)
+			return
+		}
+		h.events(w, r)
+	})
 	mux.HandleFunc("/clear", func(w http.ResponseWriter, r *http.Request) {
+		if !authed(r, tok) {
+			forbid(w)
+			return
+		}
 		if r.Method != http.MethodPost {
 			w.WriteHeader(404)
 			return
@@ -338,11 +351,40 @@ func serve(port int) error {
 		h.clear()
 		w.WriteHeader(204)
 	})
+	mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
+		if ch == nil {
+			forbid(w)
+			return
+		}
+		handleAuth(w, r, ch, tok)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if !authed(r, tok) {
+			if ch != nil {
+				serveChallenge(w, ch, false) // show the quiz instead of a bare 403
+			} else {
+				forbid(w)
+			}
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		io.WriteString(w, page)
 	})
-	fmt.Printf("claude-board on http://0.0.0.0:%d  (open http://%s:%d on your iPad)\n",
-		port, lanIP(), port)
+
+	// write side: loopback only (the local curl hook); no token needed
+	mux.HandleFunc("/push", func(w http.ResponseWriter, r *http.Request) {
+		if !isLoopback(r) {
+			w.WriteHeader(403)
+			return
+		}
+		h.push(w, r)
+	})
+
+	gate := "token in URL"
+	if ch != nil {
+		gate = "token in URL or quiz"
+	}
+	fmt.Printf("claude-board on http://0.0.0.0:%d  (open http://%s:%d/?k=%s on your iPad; auth: %s)\n",
+		port, lanIP(), port, tok, gate)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), mux)
 }

@@ -68,8 +68,8 @@ body{background:var(--bg);font-family:var(--mono);color:var(--ink);-webkit-font-
 .dsubwrap{overflow:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--line);cursor:pointer}
 .dsub{padding:14px 24px;font-size:15.5px;line-height:1.55;color:var(--ink);white-space:pre-wrap;word-break:break-word}
 .dbodywrap{overflow:auto;-webkit-overflow-scrolling:touch;cursor:pointer}
-.zone-primary{flex:1 1 auto;min-height:0}
-.zone-secondary{flex:0 0 auto;max-height:34%}
+.zone-primary{flex:1 1 0;min-height:30%}   /* main pane: keeps >=30%, grows into slack, scrolls */
+.zone-secondary{flex:0 1 auto;min-height:0} /* other: natural height; shrinks + scrolls only when tight */
 .dbody{margin:0;padding:20px 24px;font-size:15px;line-height:1.6;color:var(--ink);white-space:pre-wrap;word-break:break-word}
 .dbody .add{color:#2f6f3a}
 .dbody .del{color:var(--fail)}
@@ -250,7 +250,7 @@ function applyExpand(){
 
 function toggle(arr,v){const i=arr.indexOf(v); if(i>=0)arr.splice(i,1); else arr.push(v);}
 barEl.addEventListener('click',e=>{const b=e.target.closest('button'); if(!b)return;
-  if(b.hasAttribute('data-clear')){fetch('/clear',{method:'POST'}).catch(()=>{});state.data=[];state.selectedId=null;render();return;}
+  if(b.hasAttribute('data-clear')){fetch('/clear'+location.search,{method:'POST'}).catch(()=>{});state.data=[];state.selectedId=null;render();return;}
   if(b.dataset.tool!=null){toggle(state.activeTools,b.dataset.tool);render();return;}
   if(b.dataset.project!=null){toggle(state.activeProjects,b.dataset.project);render();}
 });
@@ -274,7 +274,7 @@ function addCard(ev){
   if(state.data.length>400) state.data.length=400;
   schedule();
 }
-const es=new EventSource('/events');
+const es=new EventSource('/events'+location.search);
 es.onmessage=e=>{const ev=JSON.parse(e.data);
   if(ev.kind==='clear'){state.data=[];state.selectedId=null;render();return;}
   addCard(ev);};
