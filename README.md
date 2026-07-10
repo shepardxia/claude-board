@@ -50,9 +50,6 @@ The server binds all interfaces so the iPad can reach it, so the board is gated:
   multiple-choice quiz; answering it sets a session cookie so you can bookmark
   the plain URL and just tap through on the iPad. This is *guessable* — keep
   casual snoopers out, not a determined attacker. Remove with `challenge off`.
-  Tip: the accepted answer need not be the *right* one — mark a deliberately
-  wrong option correct (e.g. `6 x 7 = 67`) so anyone who picks the obvious
-  answer fails; only you know the trick.
 
 It's plaintext HTTP either way. On an untrusted network, don't run it (or tunnel
 it) — the token stops the easy "open the port and watch," not a traffic sniffer.
